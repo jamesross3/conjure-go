@@ -8,10 +8,121 @@ import (
 	"reflect"
 
 	"github.com/palantir/conjure-go-runtime/v2/conjure-go-contract/errors"
+	"github.com/palantir/pkg/rid"
 	"github.com/palantir/pkg/safejson"
 	"github.com/palantir/pkg/safeyaml"
 	"github.com/palantir/pkg/uuid"
 )
+
+type invalidRids struct {
+	InvalidRids []rid.ResourceIdentifier `json:"invalidRids"`
+}
+
+func (o invalidRids) MarshalJSON() ([]byte, error) {
+	if o.InvalidRids == nil {
+		o.InvalidRids = make([]rid.ResourceIdentifier, 0)
+	}
+	type invalidRidsAlias invalidRids
+	return safejson.Marshal(invalidRidsAlias(o))
+}
+
+func (o *invalidRids) UnmarshalJSON(data []byte) error {
+	type invalidRidsAlias invalidRids
+	var rawinvalidRids invalidRidsAlias
+	if err := safejson.Unmarshal(data, &rawinvalidRids); err != nil {
+		return err
+	}
+	if rawinvalidRids.InvalidRids == nil {
+		rawinvalidRids.InvalidRids = make([]rid.ResourceIdentifier, 0)
+	}
+	*o = invalidRids(rawinvalidRids)
+	return nil
+}
+
+func (o invalidRids) MarshalYAML() (interface{}, error) {
+	jsonBytes, err := safejson.Marshal(o)
+	if err != nil {
+		return nil, err
+	}
+	return safeyaml.JSONtoYAMLMapSlice(jsonBytes)
+}
+
+func (o *invalidRids) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	jsonBytes, err := safeyaml.UnmarshalerToJSONBytes(unmarshal)
+	if err != nil {
+		return err
+	}
+	return safejson.Unmarshal(jsonBytes, *&o)
+}
+
+// NewInvalidRids returns new instance of InvalidRids error.
+func NewInvalidRids(invalidRidsArg []rid.ResourceIdentifier) *InvalidRids {
+	return &InvalidRids{errorInstanceID: uuid.NewUUID(), invalidRids: invalidRids{InvalidRids: invalidRidsArg}}
+}
+
+// InvalidRids is an error type.
+//
+// Thrown when an operation is attempted on invalid RIDs
+type InvalidRids struct {
+	errorInstanceID uuid.UUID
+	invalidRids
+}
+
+func (e *InvalidRids) Error() string {
+	return fmt.Sprintf("INVALID_ARGUMENT Example:InvalidRids (%s)", e.errorInstanceID)
+}
+
+// Code returns an enum describing error category.
+func (e *InvalidRids) Code() errors.ErrorCode {
+	return errors.InvalidArgument
+}
+
+// Name returns an error name identifying error type.
+func (e *InvalidRids) Name() string {
+	return "Example:InvalidRids"
+}
+
+// InstanceID returns unique identifier of this particular error instance.
+func (e *InvalidRids) InstanceID() uuid.UUID {
+	return e.errorInstanceID
+}
+
+// Parameters returns a set of named parameters detailing this particular error instance.
+func (e *InvalidRids) Parameters() map[string]interface{} {
+	return map[string]interface{}{"invalidRids": e.InvalidRids}
+}
+
+// SafeParams returns a set of named safe parameters detailing this particular error instance.
+func (e *InvalidRids) SafeParams() map[string]interface{} {
+	return map[string]interface{}{"invalidRids": e.InvalidRids, "errorInstanceId": e.errorInstanceID}
+}
+
+// UnsafeParams returns a set of named unsafe parameters detailing this particular error instance.
+func (e *InvalidRids) UnsafeParams() map[string]interface{} {
+	return map[string]interface{}{}
+}
+
+func (e InvalidRids) MarshalJSON() ([]byte, error) {
+	parameters, err := safejson.Marshal(e.invalidRids)
+	if err != nil {
+		return nil, err
+	}
+	return safejson.Marshal(errors.SerializableError{ErrorCode: errors.InvalidArgument, ErrorName: "Example:InvalidRids", ErrorInstanceID: e.errorInstanceID, Parameters: json.RawMessage(parameters)})
+}
+
+func (e *InvalidRids) UnmarshalJSON(data []byte) error {
+	var serializableError errors.SerializableError
+	if err := safejson.Unmarshal(data, &serializableError); err != nil {
+		return err
+	}
+	var parameters invalidRids
+	if err := safejson.Unmarshal([]byte(serializableError.Parameters), &parameters); err != nil {
+		return err
+	}
+	e.errorInstanceID = serializableError.ErrorInstanceID
+	e.invalidRids = parameters
+	return nil
+}
 
 type myInternal struct {
 	// This is safeArgA doc.
@@ -249,6 +360,7 @@ func (e *MyNotFound) UnmarshalJSON(data []byte) error {
 }
 
 func init() {
+	errors.RegisterErrorType("Example:InvalidRids", reflect.TypeOf(InvalidRids{}))
 	errors.RegisterErrorType("MyNamespace:MyInternal", reflect.TypeOf(MyInternal{}))
 	errors.RegisterErrorType("MyNamespace:MyNotFound", reflect.TypeOf(MyNotFound{}))
 }

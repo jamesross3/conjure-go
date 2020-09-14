@@ -38,6 +38,14 @@ types:
           unsafeArgB: optional<string>
           # An argument with the same (case-insensitive) name as the error type.
           myInternal: string
+      # https://github.com/palantir/conjure-go/issues/96
+      InvalidRids:
+        namespace: Example
+        code: INVALID_ARGUMENT
+        docs: |
+          Thrown when an operation is attempted on invalid RIDs
+        safe-args:
+          invalidRids: set<rid>
     objects:
       Basic:
         fields:
